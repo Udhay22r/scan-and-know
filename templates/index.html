@@ -1,0 +1,2132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan & Know - AI Powered Nutrition Analysis</title>
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: url('/images/background-image.jpg') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .main-content {
+            display: flex;
+            min-height: 700px;
+        }
+
+        .analyzer-section {
+            flex: 2;
+            border-right: 2px solid #e9ecef;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .chatbot-section {
+            flex: 1;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            display: flex;
+            flex-direction: column;
+            min-width: 350px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            text-align: center;
+            padding: 40px 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            background: white;
+            border-bottom-color: #4facfe;
+            color: #4facfe;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .scan-section {
+            text-align: center;
+        }
+
+        .scan-methods {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .scan-method {
+            padding: 15px 25px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .scan-method.active {
+            border-color: #4facfe;
+            background: #4facfe;
+            color: white;
+        }
+
+        .scan-method:hover {
+            border-color: #4facfe;
+            transform: translateY(-2px);
+        }
+
+        .camera-container {
+            margin: 20px 0;
+            display: none;
+        }
+
+        .camera-container.active {
+            display: block;
+        }
+
+        #video {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 10px;
+            border: 3px solid #4facfe;
+        }
+
+        .camera-overlay {
+            position: relative;
+            display: inline-block;
+        }
+
+        .scan-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 100px;
+            border: 3px solid #4facfe;
+            border-radius: 10px;
+            background: transparent;
+        }
+
+        .scan-frame::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border: 2px solid rgba(79, 172, 254, 0.3);
+            border-radius: 10px;
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        .camera-controls {
+            margin: 15px 0;
+        }
+
+        .camera-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0 5px;
+            transition: transform 0.3s ease;
+        }
+
+        .camera-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .camera-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .manual-input {
+            margin: 20px 0;
+            display: none;
+        }
+
+        .manual-input.active {
+            display: block;
+        }
+
+        .upload-input {
+            margin: 20px 0;
+            display: none;
+        }
+
+        .upload-input.active {
+            display: block;
+        }
+
+        .upload-area {
+            border: 3px dashed #4facfe;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            margin: 20px 0;
+        }
+
+        .upload-area:hover {
+            border-color: #00f2fe;
+            background: #e3f2fd;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #00f2fe;
+            background: #e3f2fd;
+            transform: scale(1.02);
+        }
+
+        .upload-content {
+            pointer-events: none;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .upload-hint {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .upload-preview {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .upload-preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 2px solid #4facfe;
+        }
+
+        .clear-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .clear-btn:hover {
+            transform: translateY(-2px);
+            background: #c82333;
+        }
+
+        /* Chatbot Styles */
+        .chatbot-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 20px;
+            text-align: center;
+            border-bottom: 3px solid #4facfe;
+            position: relative;
+        }
+
+        .chatbot-header::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #4facfe, #00f2fe, #4facfe);
+            background-size: 200% 100%;
+            animation: shimmer 2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .chatbot-header h3 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+
+        .chatbot-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 450px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 0 0 15px 15px;
+        }
+
+        .chatbot-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chatbot-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .chatbot-messages::-webkit-scrollbar-thumb {
+            background: #4facfe;
+            border-radius: 3px;
+        }
+
+        .chatbot-messages::-webkit-scrollbar-thumb:hover {
+            background: #3a8bfd;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 15px;
+            max-width: 85%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            margin-left: auto;
+            text-align: right;
+            border-bottom-right-radius: 5px;
+        }
+
+        .bot-message {
+            background: white;
+            border: 1px solid #e9ecef;
+            margin-right: auto;
+            line-height: 1.6;
+            border-bottom-left-radius: 5px;
+        }
+
+        .bot-message strong {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .bot-message em {
+            color: #666;
+            font-style: italic;
+        }
+
+        .bot-message h2, .bot-message h3, .bot-message h4 {
+            margin: 15px 0 8px 0;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .bot-message code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e83e8c;
+        }
+
+        .bot-message ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .bot-message li {
+            margin: 5px 0;
+        }
+
+        .chatbot-input {
+            padding: 20px;
+            border-top: 2px solid #e9ecef;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 0 0 15px 15px;
+        }
+
+        .chatbot-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chatbot-input input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+        }
+
+        .chatbot-input button {
+            padding: 12px 20px;
+            background: #4facfe;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .chatbot-input button:hover {
+            background: #3a8bfd;
+        }
+
+        .chatbot-input button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .chatbot-status {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .barcode-input {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            margin: 20px 0;
+            transition: border-color 0.3s ease;
+        }
+
+        .barcode-input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .scan-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .scan-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .scan-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-card {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 15px;
+            background: #f8f9fa;
+            border-left: 5px solid #4facfe;
+        }
+
+        .product-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .product-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-right: 20px;
+        }
+
+        .product-details h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .product-details p {
+            color: #666;
+        }
+
+        .recommendation {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .recommendation.can-consume {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .recommendation.consume-half {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .recommendation.avoid {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .nutrition-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .nutrition-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .nutrition-item .value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #4facfe;
+        }
+
+        .nutrition-item .label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .conflicts {
+            margin-top: 20px;
+        }
+
+        .conflicts h4 {
+            color: #dc3545;
+            margin-bottom: 10px;
+        }
+
+        .conflicts ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .conflicts li {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 3px solid #dc3545;
+        }
+
+        .preferences-form {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .save-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        .save-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #dc3545;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #28a745;
+        }
+
+        .no-ingredients {
+            background: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            font-style: italic;
+        }
+
+        .ingredients h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .ingredients p {
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .scanned-barcode {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 5px solid #2196f3;
+            font-weight: bold;
+        }
+
+        .preferences-notice {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 2px solid #ffc107;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+        }
+
+        .preferences-notice h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .preferences-notice p {
+            color: #856404;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .preferences-btn {
+            background: linear-gradient(135deg, #ffc107 0%, #ff8f00 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+        }
+
+        .preferences-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
+        }
+
+        .preferences-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 2px solid #28a745;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);
+        }
+
+        .preferences-success h3 {
+            color: #155724;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .preferences-success p {
+            color: #155724;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .scan-now-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .scan-now-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        /* Product Not Found Styles */
+        .product-not-found {
+            margin-top: 30px;
+        }
+
+        .not-found-card {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 2px solid #ffc107;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+        }
+
+        .not-found-card h3 {
+            color: #856404;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .not-found-card p {
+            color: #856404;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .upload-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .upload-option {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .upload-option h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .upload-option p {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .image-upload-section {
+            margin-bottom: 20px;
+        }
+
+        .upload-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .upload-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed #4facfe;
+            border-radius: 8px;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input:hover {
+            border-color: #00f2fe;
+            background: #e3f2fd;
+        }
+
+        .upload-preview {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .upload-preview img {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 8px;
+            border: 2px solid #4facfe;
+        }
+
+        .ingredients-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .ingredients-textarea:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .analyze-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Direct Analysis Section */
+        .direct-analysis-section {
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .direct-analysis-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .direct-analysis-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Extracted Text Display */
+        .extracted-text-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #4facfe;
+        }
+
+        .extracted-text-section h4 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .text-content {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .chatbot-notice {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 2px solid #2196f3;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .chatbot-notice h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .chatbot-notice p {
+            color: #1976d2;
+            margin-bottom: 15px;
+        }
+
+        .chatbot-notice-btn {
+            background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chatbot-notice-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .analyzer-section {
+                border-right: none;
+                border-bottom: 2px solid #e9ecef;
+            }
+            
+            .chatbot-section {
+                min-width: auto;
+            }
+            
+            .scan-methods {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .scan-method {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .upload-options {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            body {
+                padding: 10px;
+            }
+            
+            .direct-analysis-btn {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+            
+            .not-found-card {
+                padding: 20px;
+            }
+            
+            .upload-option {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍎 Scan & Know</h1>
+            <p>AI Powered Nutrition Analysis</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('scan')">📱 Scan Product</div>
+            <div class="tab" onclick="switchTab('preferences')">⚙️ Preferences</div>
+        </div>
+
+        <div class="main-content">
+            <div class="analyzer-section">
+                <!-- Scan Tab -->
+                <div id="scan-tab" class="tab-content active">
+            <div class="scan-section">
+                <div class="preferences-notice">
+                    <h3>⚠️ Set Your Preferences First!</h3>
+                    <p>Before scanning products, please go to the <strong>⚙️ Preferences</strong> tab above and set your dietary preferences. This ensures you get personalized nutrition advice!</p>
+                    <button onclick="switchTab('preferences')" class="preferences-btn">⚙️ Go to Preferences</button>
+                </div>
+                
+                <h2>Scan Product Barcode</h2>
+                <p>Choose your preferred scanning method to analyze the product's nutrition and compatibility with your dietary preferences.</p>
+                
+                <div class="scan-methods">
+                    <div class="scan-method active" onclick="switchScanMethod('camera')">
+                        📷 Camera Scan
+                    </div>
+                    <div class="scan-method" onclick="switchScanMethod('manual')">
+                        ⌨️ Manual Input
+                    </div>
+                    <div class="scan-method" onclick="switchScanMethod('upload')">
+                        📁 Upload Image
+                    </div>
+                </div>
+
+                <!-- Camera Scanner -->
+                <div id="camera-scanner" class="camera-container active">
+                    <div class="camera-overlay">
+                        <video id="video" autoplay muted></video>
+                        <div class="scan-frame"></div>
+                    </div>
+                    <div class="camera-controls">
+                        <button onclick="startCamera()" class="camera-btn" id="start-camera">🎥 Start Camera</button>
+                        <button onclick="stopCamera()" class="camera-btn" id="stop-camera" disabled>⏹️ Stop Camera</button>
+                    </div>
+                    <div id="scanned-barcode-display"></div>
+                </div>
+
+                <!-- Manual Input -->
+                <div id="manual-scanner" class="manual-input">
+                    <input type="text" id="barcode-input" class="barcode-input" placeholder="Enter barcode number (e.g., 3017620422003)">
+                    <button onclick="scanProduct()" class="scan-btn" id="scan-btn">🔍 Scan & Analyze</button>
+                </div>
+
+                <!-- Image Upload -->
+                <div id="upload-scanner" class="upload-input">
+                    <div class="upload-area" id="upload-area">
+                        <div class="upload-content">
+                            <div class="upload-icon">📁</div>
+                            <p>Click to upload or drag & drop</p>
+                            <p class="upload-hint">Supported formats: JPG, PNG, GIF</p>
+                        </div>
+                        <input type="file" id="image-input" accept="image/*" style="display: none;">
+                    </div>
+                    <div class="upload-preview" id="upload-preview" style="display: none;">
+                        <img id="preview-image" alt="Preview">
+                        <button onclick="scanUploadedImage()" class="scan-btn">🔍 Scan & Analyze</button>
+                        <button onclick="clearUpload()" class="clear-btn">🗑️ Clear</button>
+                    </div>
+                </div>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing product...</p>
+                </div>
+
+                <div id="result-container"></div>
+
+                <!-- Product Not Found Section -->
+                <div id="product-not-found" class="product-not-found" style="display: none;">
+                    <div class="not-found-card">
+                        <h3>🔍 Product Not Found</h3>
+                        <p>This product is not available in our database. You can analyze it manually by uploading the ingredients and nutritional label images.</p>
+                        
+                        <div class="upload-options">
+                            <div class="upload-option">
+                                <h4>📷 Upload Ingredients Image</h4>
+                                <p>Upload a clear photo of the ingredients list</p>
+                                
+                                <div class="image-upload-section">
+                                    <div class="upload-group">
+                                        <label for="ingredients-image">Ingredients List Image:</label>
+                                        <input type="file" id="ingredients-image" accept="image/*" class="file-input">
+                                        <div class="upload-preview" id="ingredients-preview"></div>
+                                    </div>
+                                    
+                                    <div class="upload-group">
+                                        <label for="nutritional-image">Nutritional Label Image (Optional):</label>
+                                        <input type="file" id="nutritional-image" accept="image/*" class="file-input">
+                                        <div class="upload-preview" id="nutritional-preview"></div>
+                                    </div>
+                                </div>
+                                
+                                <button onclick="analyzeUploadedImages()" class="analyze-btn" id="analyze-images-btn" disabled>
+                                    🔍 Analyze Ingredients
+                                </button>
+                                <button onclick="clearUploadedImages()" class="clear-btn" style="margin-top: 10px; width: 100%;">
+                                    🗑️ Clear Images
+                                </button>
+                            </div>
+                            
+                            <div class="upload-option">
+                                <h4>✍️ Manual Ingredients Input</h4>
+                                <p>Or type the ingredients list directly</p>
+                                
+                                <textarea id="manual-ingredients" placeholder="Enter ingredients list (e.g., sugar, flour, eggs, milk...)" class="ingredients-textarea"></textarea>
+                                
+                                <button onclick="analyzeManualIngredients()" class="analyze-btn" id="analyze-manual-btn" disabled>
+                                    🔍 Analyze Ingredients
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Direct Analysis Button -->
+                <div class="direct-analysis-section">
+                    <button onclick="showDirectAnalysis()" class="direct-analysis-btn">
+                        🔍 Analyze Using Ingredients
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preferences Tab -->
+        <div id="preferences-tab" class="tab-content">
+            <div class="preferences-form">
+                <h2>Dietary Preferences</h2>
+                <p>Set your dietary preferences to get personalized nutrition recommendations.</p>
+
+                <div class="form-group">
+                    <label for="age">Age:</label>
+                    <input type="number" id="age" min="1" max="120">
+                </div>
+
+                <div class="form-group">
+                    <label for="weight">Weight (kg):</label>
+                    <input type="number" id="weight" min="20" max="300" step="0.1">
+                </div>
+
+                <div class="form-group">
+                    <label for="exercise">Exercise Intensity:</label>
+                    <select id="exercise">
+                        <option value="low">Low Activity</option>
+                        <option value="medium" selected>Medium Activity</option>
+                        <option value="high">High Activity</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Health Conditions:</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="diabetic">
+                        <label for="diabetic">Diabetic</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="allergens">Allergens (comma-separated):</label>
+                    <input type="text" id="allergens" placeholder="e.g., nuts, dairy, gluten">
+                </div>
+
+                <button onclick="savePreferences()" class="save-btn">💾 Save Preferences</button>
+
+                <div id="preferences-message"></div>
+                
+                <div class="preferences-success" id="preferences-success" style="display: none;">
+                    <h3>✅ Preferences Saved Successfully!</h3>
+                    <p>Your dietary preferences have been saved. You can now go back to the <strong>📱 Scan Product</strong> tab to start scanning products for personalized nutrition analysis!</p>
+                    <button onclick="switchTab('scan')" class="scan-now-btn">📱 Start Scanning</button>
+                </div>
+            </div>
+        </div>
+            </div>
+
+            <!-- Chatbot Section -->
+            <div class="chatbot-section">
+                <div class="chatbot-header">
+                    <h3>🤖 AI Nutrition Assistant</h3>
+                </div>
+                
+                <div class="chatbot-messages" id="chatbot-messages">
+                    <div class="message bot-message">
+                        👋 Welcome to Scan & Know! 
+                        
+                        **Before scanning products, please:**
+                        1. Go to the ⚙️ Preferences tab (top left)
+                        2. Set your dietary preferences and health conditions
+                        3. Save your preferences
+                        4. Then come back to scan products
+                        
+                        This helps me give you personalized nutrition advice! 🍎
+                    </div>
+                </div>
+                
+                <div class="chatbot-input">
+                    <div class="chatbot-input-container">
+                        <input type="text" id="chatbot-input" placeholder="Ask about the product..." onkeypress="handleChatbotKeyPress(event)">
+                        <button onclick="sendChatbotMessage()" id="chatbot-send-btn">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'scan';
+        let currentScanMethod = 'camera';
+        let codeReader = null;
+        let videoStream = null;
+        let isScanning = false;
+
+        // Initialize ZXing code reader
+        async function initializeCodeReader() {
+            try {
+                codeReader = new ZXing.BrowserMultiFormatReader();
+                console.log('Code reader initialized successfully');
+            } catch (error) {
+                console.error('Error initializing code reader:', error);
+                showError('Failed to initialize barcode scanner. Please use manual input.');
+            }
+        }
+
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName + '-tab').classList.add('active');
+
+            currentTab = tabName;
+
+            if (tabName === 'preferences') {
+                loadPreferences();
+            } else if (tabName === 'scan' && currentScanMethod === 'camera') {
+                // Restart camera if switching back to scan tab
+                setTimeout(() => {
+                    if (currentScanMethod === 'camera') {
+                        startCamera();
+                    }
+                }, 100);
+            }
+        }
+
+        function switchScanMethod(method) {
+            currentScanMethod = method;
+            
+            // Update method buttons
+            document.querySelectorAll('.scan-method').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Show/hide containers
+            document.getElementById('camera-scanner').classList.toggle('active', method === 'camera');
+            document.getElementById('manual-scanner').classList.toggle('active', method === 'manual');
+            document.getElementById('upload-scanner').classList.toggle('active', method === 'upload');
+            
+            if (method === 'camera') {
+                startCamera();
+            } else {
+                stopCamera();
+            }
+        }
+
+        async function startCamera() {
+            if (!codeReader) {
+                await initializeCodeReader();
+            }
+            
+            // Clear any previous scanned barcode display
+            document.getElementById('scanned-barcode-display').innerHTML = '';
+            
+            try {
+                const video = document.getElementById('video');
+                await codeReader.decodeFromVideoDevice(null, video, (result, error) => {
+                    if (result) {
+                        const barcode = result.text;
+                        console.log('Barcode detected:', barcode);
+                        document.getElementById('scanned-barcode-display').innerHTML = 
+                            `<div class="scanned-barcode">📱 Scanned: ${barcode}</div>`;
+                        
+                        // Auto-scan the product and stop camera
+                        setTimeout(async () => {
+                            await scanProductWithBarcode(barcode);
+                            stopCamera(); // Stop camera after scanning
+                        }, 1000);
+                    }
+                });
+                
+                document.getElementById('start-camera').disabled = true;
+                document.getElementById('stop-camera').disabled = false;
+                isScanning = true;
+                
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                showError('Failed to access camera. Please check camera permissions or use manual input.');
+            }
+        }
+
+        function stopCamera() {
+            if (codeReader && isScanning) {
+                codeReader.reset();
+                isScanning = false;
+            }
+            
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            
+            document.getElementById('start-camera').disabled = false;
+            document.getElementById('stop-camera').disabled = true;
+            document.getElementById('scanned-barcode-display').innerHTML = '';
+        }
+
+        async function scanProductWithBarcode(barcode) {
+            document.getElementById('barcode-input').value = barcode;
+            await scanProduct();
+            // Clear the scanned barcode display after processing
+            setTimeout(() => {
+                document.getElementById('scanned-barcode-display').innerHTML = '';
+            }, 2000);
+        }
+
+        async function scanProduct() {
+            const barcode = document.getElementById('barcode-input').value.trim();
+            const scanBtn = document.getElementById('scan-btn');
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('result-container');
+            const productNotFound = document.getElementById('product-not-found');
+
+            if (!barcode) {
+                alert('Please enter a barcode number');
+                return;
+            }
+
+            // Show loading
+            scanBtn.disabled = true;
+            loading.style.display = 'block';
+            resultContainer.innerHTML = '';
+            productNotFound.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/scan_product', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ barcode: barcode })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Add delay for scanned products (database products)
+                    const delay = Math.floor(Math.random() * 4) + 5; // 5-8 seconds
+                    loading.innerHTML = `
+                        <div class="spinner"></div>
+                        <p>Analyzing product...</p>
+                    `;
+                    
+                    await new Promise(resolve => setTimeout(resolve, delay * 1000));
+                    
+                    displayResult(data);
+                } else if (response.status === 404 && data.product_not_found) {
+                    // Show product not found section
+                    productNotFound.style.display = 'block';
+                    resultContainer.innerHTML = `<div class="error">${data.error}</div>`;
+                } else {
+                    resultContainer.innerHTML = `<div class="error">${data.error}</div>`;
+                }
+            } catch (error) {
+                resultContainer.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                scanBtn.disabled = false;
+                loading.style.display = 'none';
+                // Reset loading message
+                loading.innerHTML = `
+                    <div class="spinner"></div>
+                    <p>Analyzing product...</p>
+                `;
+            }
+        }
+
+        function displayResult(data) {
+            const { product, analysis, extracted_text } = data;
+            const resultContainer = document.getElementById('result-container');
+
+            const recommendationClass = analysis.consumption_recommendation.replace('_', '-');
+            const recommendationText = getRecommendationText(analysis.consumption_recommendation);
+
+            // Check if this is a manual upload (product not found scenario)
+            const isManualUpload = product.source === 'manual_upload' || product.source === 'ingredients_only';
+
+            // Don't show extracted text for uploaded images - only show ingredients
+            let extractedTextHTML = '';
+            if (extracted_text && !isManualUpload) {
+                extractedTextHTML = `
+                    <div class="extracted-text-section">
+                        <h4>📄 Extracted Text from Images:</h4>
+                        ${extracted_text.ingredients ? `
+                            <div style="margin-bottom: 15px;">
+                                <strong>Ingredients:</strong>
+                                <div class="text-content">${extracted_text.ingredients}</div>
+                            </div>
+                        ` : ''}
+                        ${extracted_text.nutritional ? `
+                            <div>
+                                <strong>Nutritional Label:</strong>
+                                <div class="text-content">${extracted_text.nutritional}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            // Only show nutrition grid for database products, not manual uploads
+            const nutritionGridHTML = !isManualUpload ? `
+                <div class="nutrition-grid">
+                    <div class="nutrition-item">
+                        <div class="value">${analysis.nutrition_summary.calories.toFixed(0)}</div>
+                        <div class="label">Calories</div>
+                    </div>
+                    <div class="nutrition-item">
+                        <div class="value">${analysis.nutrition_summary.sugar.toFixed(1)}g</div>
+                        <div class="label">Sugar</div>
+                    </div>
+                    <div class="nutrition-item">
+                        <div class="value">${analysis.nutrition_summary.fat.toFixed(1)}g</div>
+                        <div class="label">Fat</div>
+                    </div>
+                    <div class="nutrition-item">
+                        <div class="value">${analysis.nutrition_summary.protein.toFixed(1)}g</div>
+                        <div class="label">Protein</div>
+                    </div>
+                    <div class="nutrition-item">
+                        <div class="value">${analysis.nutrition_summary.carbohydrates.toFixed(1)}g</div>
+                        <div class="label">Carbs</div>
+                    </div>
+                </div>
+            ` : '';
+
+            const resultHTML = `
+                <div class="result-card">
+                    <div class="product-info">
+                        ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}" class="product-image">` : ''}
+                        <div class="product-details">
+                            <h3>${product.name}</h3>
+                            <p>${product.brand}</p>
+                            ${product.source && product.source !== 'database' ? `<p><em>Source: ${product.source}</em></p>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="recommendation ${recommendationClass}">
+                        ${recommendationText}
+                    </div>
+
+                    ${nutritionGridHTML}
+
+                    <div class="ingredients">
+                        <h4>Ingredients:</h4>
+                        ${product.ingredients && product.ingredients !== 'Ingredients not available' ? 
+                            `<p>${product.ingredients}</p>` : 
+                            `<p class="no-ingredients">⚠️ Ingredients information not available in the database. Please check the product label for complete ingredient information.</p>`
+                        }
+                    </div>
+
+                    ${analysis.dietary_conflicts.length > 0 ? `
+                        <div class="conflicts">
+                            <h4>⚠️ Dietary Conflicts:</h4>
+                            <ul>
+                                ${analysis.dietary_conflicts.map(conflict => `<li>${conflict}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+
+                    ${extractedTextHTML}
+
+                    ${!isManualUpload ? `
+                        <div class="chatbot-notice">
+                            <h4>🤖 Ask the AI Assistant</h4>
+                            <p>Have questions about this product? Ask our AI nutrition assistant for detailed analysis and personalized advice!</p>
+                            <button onclick="focusChatbot()" class="chatbot-notice-btn">💬 Ask AI Assistant</button>
+                        </div>
+                    ` : `
+                        <div class="chatbot-notice" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-color: #6c757d;">
+                            <h4 style="color: #6c757d;">🤖 AI Assistant Unavailable</h4>
+                            <p style="color: #6c757d;">Chatbot is not available for manually uploaded products. Please scan products from the database for AI assistance.</p>
+                        </div>
+                    `}
+                </div>
+            `;
+
+            resultContainer.innerHTML = resultHTML;
+            
+            // Enable or disable chatbot based on product source
+            if (isManualUpload) {
+                disableChatbot();
+            } else {
+                enableChatbot();
+            }
+        }
+
+        function getRecommendationText(recommendation) {
+            switch (recommendation) {
+                case 'can_consume':
+                    return '✅ Safe to consume!';
+                case 'consume_half':
+                    return '⚠️ Consume in moderation';
+                case 'avoid':
+                    return '❌ Avoid this product';
+                default:
+                    return '❓ Unable to determine';
+            }
+        }
+
+        function showError(message) {
+            const resultContainer = document.getElementById('result-container');
+            resultContainer.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        async function loadPreferences() {
+            try {
+                const response = await fetch('/api/preferences');
+                const preferences = await response.json();
+
+                document.getElementById('age').value = preferences.age || '';
+                document.getElementById('weight').value = preferences.weight || '';
+                document.getElementById('exercise').value = preferences.exercise_intensity || 'medium';
+                document.getElementById('diabetic').checked = preferences.diabetic || false;
+                document.getElementById('allergens').value = preferences.allergens ? preferences.allergens.join(', ') : '';
+            } catch (error) {
+                console.error('Error loading preferences:', error);
+            }
+        }
+
+        async function savePreferences() {
+            const preferences = {
+                age: parseInt(document.getElementById('age').value) || 25,
+                weight: parseFloat(document.getElementById('weight').value) || 70,
+                exercise_intensity: document.getElementById('exercise').value,
+                diabetic: document.getElementById('diabetic').checked,
+                allergens: document.getElementById('allergens').value.split(',').map(a => a.trim()).filter(a => a)
+            };
+
+            try {
+                const response = await fetch('/api/preferences', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(preferences)
+                });
+
+                const data = await response.json();
+                const messageDiv = document.getElementById('preferences-message');
+
+                        if (response.ok) {
+            messageDiv.innerHTML = `<div class="success">${data.message}</div>`;
+            // Show the success message with scan button
+            document.getElementById('preferences-success').style.display = 'block';
+            // Hide the preferences notice in scan section
+            const preferencesNotice = document.querySelector('.preferences-notice');
+            if (preferencesNotice) {
+                preferencesNotice.style.display = 'none';
+            }
+        } else {
+            messageDiv.innerHTML = `<div class="error">${data.error}</div>`;
+        }
+
+                // Clear message after 3 seconds
+                setTimeout(() => {
+                    messageDiv.innerHTML = '';
+                }, 3000);
+            } catch (error) {
+                document.getElementById('preferences-message').innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Upload functionality
+        function setupUploadArea() {
+            const uploadArea = document.getElementById('upload-area');
+            const imageInput = document.getElementById('image-input');
+
+            // Click to upload
+            uploadArea.addEventListener('click', () => {
+                imageInput.click();
+            });
+
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleImageFile(files[0]);
+                }
+            });
+
+            // File input change
+            imageInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleImageFile(e.target.files[0]);
+                }
+            });
+        }
+
+        function handleImageFile(file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size must be less than 5MB');
+                return;
+            }
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('preview-image').src = e.target.result;
+                document.getElementById('upload-area').style.display = 'none';
+                document.getElementById('upload-preview').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function scanUploadedImage() {
+            const imageInput = document.getElementById('image-input');
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('result-container');
+            const productNotFound = document.getElementById('product-not-found');
+
+            if (!imageInput.files[0]) {
+                alert('Please select an image first');
+                return;
+            }
+
+            // Show loading
+            loading.style.display = 'block';
+            resultContainer.innerHTML = '';
+            productNotFound.style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                formData.append('image', imageInput.files[0]);
+
+                const response = await fetch('/api/scan_image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Add delay for scanned products (database products)
+                    const delay = Math.floor(Math.random() * 4) + 5; // 5-8 seconds
+                    loading.innerHTML = `
+                        <div class="spinner"></div>
+                        <p>Analyzing product...</p>
+                    `;
+                    
+                    await new Promise(resolve => setTimeout(resolve, delay * 1000));
+                    
+                    displayResult(data);
+                } else if (response.status === 404 && data.product_not_found) {
+                    // Show product not found section
+                    productNotFound.style.display = 'block';
+                    resultContainer.innerHTML = `<div class="error">${data.error}</div>`;
+                } else {
+                    resultContainer.innerHTML = `<div class="error">${data.error}</div>`;
+                }
+            } catch (error) {
+                resultContainer.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+                // Reset loading message
+                loading.innerHTML = `
+                    <div class="spinner"></div>
+                    <p>Analyzing product...</p>
+                `;
+            }
+        }
+
+        function clearUpload() {
+            document.getElementById('image-input').value = '';
+            document.getElementById('upload-area').style.display = 'block';
+            document.getElementById('upload-preview').style.display = 'none';
+            document.getElementById('result-container').innerHTML = '';
+        }
+
+        // Chatbot Functions
+        function handleChatbotKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendChatbotMessage();
+            }
+        }
+
+        async function sendChatbotMessage() {
+            const input = document.getElementById('chatbot-input');
+            const sendBtn = document.getElementById('chatbot-send-btn');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message to chat
+            addUserMessage(message);
+            input.value = '';
+            
+            // Disable input while processing
+            input.disabled = true;
+            sendBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/chatbot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addBotMessage(data.response);
+                } else {
+                    addBotMessage(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                addBotMessage(`Error: ${error.message}`);
+            } finally {
+                // Re-enable input
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
+            }
+        }
+
+        function addUserMessage(message) {
+            const messagesContainer = document.getElementById('chatbot-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user-message';
+            messageDiv.textContent = message;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function addBotMessage(message) {
+            const messagesContainer = document.getElementById('chatbot-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot-message';
+            
+            // Format the message to preserve line breaks and basic formatting
+            const formattedMessage = formatBotMessage(message);
+            messageDiv.innerHTML = formattedMessage;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function formatBotMessage(message) {
+            // Replace line breaks with <br> tags
+            let formatted = message.replace(/\n/g, '<br>');
+            
+            // Format bullet points (lines starting with * or -)
+            formatted = formatted.replace(/^\s*[\*\-]\s+(.+)$/gm, '• $1');
+            
+            // Format bold text (**text** or *text*)
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            // Format headers (lines starting with #)
+            formatted = formatted.replace(/^###\s+(.+)$/gm, '<h4 style="margin: 10px 0 5px 0; color: #333;">$1</h4>');
+            formatted = formatted.replace(/^##\s+(.+)$/gm, '<h3 style="margin: 15px 0 8px 0; color: #333;">$1</h3>');
+            formatted = formatted.replace(/^#\s+(.+)$/gm, '<h2 style="margin: 20px 0 10px 0; color: #333;">$1</h2>');
+            
+            // Format code blocks (text between backticks)
+            formatted = formatted.replace(/`([^`]+)`/g, '<code style="background: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: monospace;">$1</code>');
+            
+            // Add some spacing for better readability
+            formatted = formatted.replace(/<br><br>/g, '<br><br><div style="margin: 5px 0;"></div>');
+            
+            return formatted;
+        }
+
+        function enableChatbot() {
+            const chatbotInput = document.getElementById('chatbot-input');
+            const chatbotSendBtn = document.getElementById('chatbot-send-btn');
+            
+            chatbotInput.disabled = false;
+            chatbotSendBtn.disabled = false;
+            chatbotInput.placeholder = "Ask about the product...";
+            
+            // Add a message indicating product is loaded
+            addBotMessage("✅ Product loaded! Ask me anything about its nutrition, ingredients, or health implications!");
+        }
+
+        function disableChatbot() {
+            const chatbotInput = document.getElementById('chatbot-input');
+            const chatbotSendBtn = document.getElementById('chatbot-send-btn');
+            
+            chatbotInput.disabled = true;
+            chatbotSendBtn.disabled = true;
+            chatbotInput.placeholder = "Chatbot not available for uploaded products...";
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPreferences();
+            initializeCodeReader();
+            setupUploadArea();
+            setupImageUploads();
+            setupManualIngredients();
+            
+            // Initially disable chatbot until a product is scanned
+            const chatbotInput = document.getElementById('chatbot-input');
+            const chatbotSendBtn = document.getElementById('chatbot-send-btn');
+            chatbotInput.disabled = true;
+            chatbotSendBtn.disabled = true;
+            chatbotInput.placeholder = "Scan a product first...";
+        });
+
+        // Setup image upload functionality for ingredients analysis
+        function setupImageUploads() {
+            const ingredientsInput = document.getElementById('ingredients-image');
+            const nutritionalInput = document.getElementById('nutritional-image');
+            const analyzeBtn = document.getElementById('analyze-images-btn');
+
+            ingredientsInput.addEventListener('change', handleIngredientsPreview);
+            nutritionalInput.addEventListener('change', handleNutritionalPreview);
+
+            function handleIngredientsPreview(event) {
+                const file = event.target.files[0];
+                
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('ingredients-preview').innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    document.getElementById('ingredients-preview').innerHTML = '';
+                }
+                
+                // Enable analyze button if ingredients image is selected
+                analyzeBtn.disabled = !ingredientsInput.files[0];
+            }
+
+            function handleNutritionalPreview(event) {
+                const file = event.target.files[0];
+                
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('nutritional-preview').innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    document.getElementById('nutritional-preview').innerHTML = '';
+                }
+            }
+        }
+
+        // Setup manual ingredients input
+        function setupManualIngredients() {
+            const textarea = document.getElementById('manual-ingredients');
+            const analyzeBtn = document.getElementById('analyze-manual-btn');
+
+            textarea.addEventListener('input', function() {
+                analyzeBtn.disabled = !this.value.trim();
+            });
+        }
+
+        // Clear uploaded images
+        function clearUploadedImages() {
+            document.getElementById('ingredients-image').value = '';
+            document.getElementById('nutritional-image').value = '';
+            document.getElementById('ingredients-preview').innerHTML = '';
+            document.getElementById('nutritional-preview').innerHTML = '';
+            document.getElementById('analyze-images-btn').disabled = true;
+        }
+
+        // Analyze uploaded ingredients image
+        async function analyzeUploadedImages() {
+            const ingredientsFile = document.getElementById('ingredients-image').files[0];
+            const nutritionalFile = document.getElementById('nutritional-image').files[0];
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('result-container');
+            const productNotFound = document.getElementById('product-not-found');
+
+            if (!ingredientsFile) {
+                alert('Please select an ingredients image');
+                return;
+            }
+
+            // Show loading
+            loading.style.display = 'block';
+            resultContainer.innerHTML = '';
+            productNotFound.style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                formData.append('ingredients_image', ingredientsFile);
+                
+                // Add nutritional label image if provided
+                if (nutritionalFile) {
+                    formData.append('nutritional_image', nutritionalFile);
+                }
+
+                const response = await fetch('/api/upload_ingredients_analysis', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayResult(data);
+                } else {
+                    resultContainer.innerHTML = `<div class="error">${data.error}</div>`;
+                }
+            } catch (error) {
+                resultContainer.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // Analyze manual ingredients input
+        async function analyzeManualIngredients() {
+            const ingredientsText = document.getElementById('manual-ingredients').value.trim();
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('result-container');
+            const productNotFound = document.getElementById('product-not-found');
+
+            if (!ingredientsText) {
+                alert('Please enter ingredients text');
+                return;
+            }
+
+            // Show loading
+            loading.style.display = 'block';
+            resultContainer.innerHTML = '';
+            productNotFound.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/analyze_ingredients_only', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ingredients_text: ingredientsText })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayResult(data);
+                } else {
+                    resultContainer.innerHTML = `<div class="error">${data.error}</div>`;
+                }
+            } catch (error) {
+                resultContainer.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // Show direct analysis section
+        function showDirectAnalysis() {
+            const productNotFound = document.getElementById('product-not-found');
+            productNotFound.style.display = 'block';
+            productNotFound.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Focus chatbot input
+        function focusChatbot() {
+            const chatbotInput = document.getElementById('chatbot-input');
+            chatbotInput.focus();
+            chatbotInput.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Allow Enter key to scan product
+        document.getElementById('barcode-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                scanProduct();
+            }
+        });
+
+        // Clean up camera when leaving page
+        window.addEventListener('beforeunload', function() {
+            stopCamera();
+        });
+    </script>
+</body>
+</html> 
