@@ -71,61 +71,23 @@
 
         .header-content {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             max-width: 1200px;
             margin: 0 auto;
+            position: relative;
         }
 
         .header-left {
-            text-align: left;
+            text-align: center;
         }
 
         .header-right {
+            position: absolute;
+            right: 0;
             display: flex;
             align-items: center;
             gap: 15px;
-        }
-
-        .welcome-text {
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
-        .auth-btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-
-        .login-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-
-        .register-btn {
-            background: white;
-            color: #4facfe;
-        }
-
-        .dashboard-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-
-        .logout-btn {
-            background: #ff4757;
-            color: white;
-        }
-
-        .auth-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .header::before {
@@ -1174,14 +1136,7 @@
                     <p>AI Powered Nutrition Analysis</p>
                 </div>
                 <div class="header-right">
-                    {% if user.is_authenticated %}
-                        <span class="welcome-text">Welcome, {{ user.username }}!</span>
-                        <a href="/dashboard" class="auth-btn dashboard-btn">📊 Dashboard</a>
-                        <a href="/logout" class="auth-btn logout-btn">🚪 Logout</a>
-                    {% else %}
-                        <a href="/login" class="auth-btn login-btn">🔑 Login</a>
-                        <a href="/register" class="auth-btn register-btn">📝 Register</a>
-                    {% endif %}
+                    <!-- Authentication removed -->
                 </div>
             </div>
         </div>

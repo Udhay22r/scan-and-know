@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
-from flask_login import LoginManager, login_required, current_user
 import requests
 import json
 import os
@@ -16,33 +15,14 @@ import easyocr
 from PIL import Image
 import re
 
-# Import our models and auth blueprint
-from models import db, User
-from auth import auth
-
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-change-this-in-production')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///scan_know.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize extensions
-db.init_app(app)
 CORS(app)
-
-# Initialize Flask-Login
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'auth.login'
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-# Register blueprints
-app.register_blueprint(auth)
 
 # Fix PIL.Image.ANTIALIAS compatibility issue
 try:
@@ -187,7 +167,7 @@ DIETARY_RESTRICTIONS = {
 
 @app.route('/')
 def index():
-    return render_template('index.html', user=current_user)
+    return render_template('index.html')
 
 @app.route('/images/<filename>')
 def serve_image(filename):
@@ -218,22 +198,8 @@ def scan_product():
         # Store product data for chatbot
         current_product_data = product_data
         
-        # Save scan history if user is logged in
-        if current_user.is_authenticated:
-            save_scan_history(current_user.id, product_data.get('product_name', 'Unknown Product'), None, {
-                "product": product_data,
-                "extracted_text": extracted_text_data
-            }, 'manual_upload')
-        
         # Analyze product against user preferences
         analysis_result = analyze_product(product_data, user_preferences)
-        
-        # Save scan history if user is logged in
-        if current_user.is_authenticated:
-            save_scan_history(current_user.id, product_data.get('product_name', 'Unknown Product'), barcode, {
-                "product": product_data,
-                "analysis": analysis_result
-            }, 'barcode')
         
         return jsonify({
             "product": product_data,
@@ -901,26 +867,7 @@ def analyze_ingredients_logic(ingredients_text, user_preferences):
         else:
             return "✅ SAFE TO CONSUME - No sugar detected in first 5 ingredients. Safe for consumption."
 
-def save_scan_history(user_id, product_name, barcode, product_data, scan_type):
-    """Save scan history to database"""
-    try:
-        from models import ScanHistory
-        import json
-        
-        scan_history = ScanHistory(
-            user_id=user_id,
-            product_name=product_name,
-            barcode=barcode,
-            product_data=json.dumps(product_data),
-            scan_type=scan_type
-        )
-        
-        db.session.add(scan_history)
-        db.session.commit()
-        print(f"✅ Scan history saved for user {user_id}: {product_name}")
-    except Exception as e:
-        print(f"❌ Error saving scan history: {e}")
-        db.session.rollback()
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
