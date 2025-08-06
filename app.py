@@ -64,6 +64,7 @@ def check_available_models():
     try:
         api_key = os.getenv('GEMINI_API_KEY')
         if not api_key:
+            print("⚠️  GEMINI_API_KEY not found - skipping model check")
             return []
         
         genai.configure(api_key=api_key)
@@ -107,7 +108,16 @@ def initialize_gemini():
         return None
 
 # Initialize the model
-model = initialize_gemini()
+model = None
+try:
+    model = initialize_gemini()
+    if model:
+        print("✅ Gemini AI model initialized successfully")
+    else:
+        print("⚠️  Gemini AI model not initialized - API key may be missing")
+except Exception as e:
+    print(f"⚠️  Error during Gemini initialization: {e}")
+    model = None
 
 # Global variables
 user_preferences = {
@@ -168,6 +178,15 @@ DIETARY_RESTRICTIONS = {
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/health')
+def health_check():
+    """Simple health check endpoint for deployment verification"""
+    return jsonify({
+        "status": "healthy",
+        "message": "Scan & Know application is running",
+        "timestamp": datetime.now().isoformat()
+    })
 
 @app.route('/images/<filename>')
 def serve_image(filename):
