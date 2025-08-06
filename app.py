@@ -1,13 +1,11 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import requests
-import json
 import os
 from datetime import datetime
 import cv2
 import numpy as np
 from pyzbar import pyzbar
-import base64
 import google.generativeai as genai
 from dotenv import load_dotenv
 import pytesseract
@@ -19,18 +17,14 @@ import re
 load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-change-this-in-production')
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
 
 # Initialize extensions
 CORS(app)
 
 # Fix PIL.Image.ANTIALIAS compatibility issue
-try:
-    from PIL import Image
-    if not hasattr(Image, 'ANTIALIAS'):
-        Image.ANTIALIAS = Image.Resampling.LANCZOS
-except ImportError:
-    pass
+if not hasattr(Image, 'ANTIALIAS'):
+    Image.ANTIALIAS = Image.Resampling.LANCZOS
 
 # Initialize EasyOCR reader for better text extraction
 try:
