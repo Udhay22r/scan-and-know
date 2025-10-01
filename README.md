@@ -1,23 +1,58 @@
-# Scan & Know - AI Powered Nutrition Analysis
+# Scan & Know 🍎
 
-A comprehensive web application that uses AI to analyze food products and provide personalized nutrition recommendations based on user dietary preferences and health conditions.
+**AI-Powered Nutrition Analysis with Advanced OCR Technology**
 
-## Features
+A comprehensive web application that uses cutting-edge OCR technology and AI to analyze food products and provide personalized nutrition recommendations based on your dietary preferences and health conditions.
 
-### 🍎 Core Features
-- **Barcode Scanning**: Scan product barcodes using camera, manual input, or image upload
-- **AI-Powered Analysis**: Get personalized nutrition advice using Google's Gemini AI
-- **Dietary Preferences**: Set your health conditions, allergens, and dietary restrictions
-- **Real-time Chatbot**: Ask questions about products and get instant AI responses
+![Screenshot 1](images/Screenshot%202025-10-01%20120127.png)
 
-### 🔍 New OCR Analysis Features
-- **Product Not Found Handling**: When products aren't in the database, upload images for manual analysis
-- **Image Text Extraction**: Upload ingredients list and nutritional label images for OCR analysis
-- **Manual Ingredients Input**: Type ingredients directly for quick analysis
-- **Smart Sugar Analysis**: Special logic for diabetic patients analyzing first 3-5 ingredients
-- **Direct Analysis Button**: Skip scanning and go straight to manual analysis
+![Screenshot 2](images/Screenshot%202025-10-01%20120248.png)
 
-## Installation
+![Screenshot 3](images/Screenshot%202025-10-01%20120533.png)
+
+![Screenshot 4](images/Screenshot%202025-10-01%20121129.png)
+
+## 🚀 Features
+
+### 🔍 **Advanced OCR Technology**
+- **EasyOCR**: Primary OCR engine for superior text extraction accuracy
+- **Tesseract OCR**: Robust fallback OCR engine for comprehensive coverage
+- **Smart Text Processing**: Extracts nutrition data and allergens from product images
+- **Multi-language Support**: Handles various text formats and languages
+
+### 📱 **Multiple Scanning Methods**
+- **Camera Barcode Scan**: Real-time barcode detection using device camera
+- **Manual Input**: Direct barcode number entry
+- **Image Upload**: Upload photos of barcodes or product labels
+- **OCR Analysis**: Extract text from ingredients and nutritional labels
+
+### 🤖 **AI-Powered Analysis**
+- **Google Gemini AI**: Personalized nutrition advice and recommendations
+- **Smart Chatbot**: Interactive AI assistant for product inquiries
+- **Dietary Preferences**: Custom health conditions and allergen tracking
+- **Real-time Analysis**: Instant nutrition insights and recommendations
+
+### 🍎 **Smart Nutrition Logic**
+- **Sugar Analysis**: Special algorithms for diabetic patients
+- **Allergen Detection**: Comprehensive allergen identification
+- **Ingredient Prioritization**: First 3-5 ingredients analysis
+- **Consumption Recommendations**: Personalized intake guidelines
+
+## 🛠️ **OCR Technologies Used**
+
+### **EasyOCR**
+- **Primary OCR Engine**: Superior accuracy for text extraction
+- **Multi-language Support**: Handles various text formats
+- **Real-time Processing**: Fast text recognition from images
+- **High Precision**: Advanced neural network-based recognition
+
+### **Tesseract OCR**
+- **Fallback Engine**: Reliable backup for text extraction
+- **Open Source**: Industry-standard OCR solution
+- **Cross-platform**: Works on Windows, macOS, and Linux
+- **Robust Performance**: Handles challenging image conditions
+
+## 📦 Installation
 
 ### Prerequisites
 - Python 3.8 or higher
@@ -26,9 +61,14 @@ A comprehensive web application that uses AI to analyze food products and provid
 ### Install Tesseract OCR
 
 **Windows:**
-1. Download from: https://github.com/UB-Mannheim/tesseract/wiki
-2. Install and add to PATH
-3. Or use: `winget install UB-Mannheim.TesseractOCR`
+```bash
+# Option 1: Using winget
+winget install UB-Mannheim.TesseractOCR
+
+# Option 2: Manual download
+# Download from: https://github.com/UB-Mannheim/tesseract/wiki
+# Install and add to PATH
+```
 
 **macOS:**
 ```bash
@@ -52,7 +92,10 @@ cd scan-and-know
 2. **Create virtual environment:**
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Windows
+venv\Scripts\activate
+# macOS/Linux
+source venv/bin/activate
 ```
 
 3. **Install dependencies:**
@@ -65,7 +108,7 @@ pip install -r requirements.txt
 python setup_api_key.py
 ```
 
-5. **Verify Tesseract OCR installation:**
+5. **Verify OCR installation:**
 ```bash
 python setup_tesseract.py
 ```
@@ -77,7 +120,7 @@ python app.py
 
 The application will be available at `http://localhost:5000`
 
-## Usage
+## 🎯 Usage
 
 ### Basic Scanning
 1. Set your dietary preferences in the ⚙️ Preferences tab
@@ -87,7 +130,7 @@ The application will be available at `http://localhost:5000`
    - ⌨️ Manual Input: Type the barcode number
    - 📁 Upload Image: Upload a photo of the barcode
 
-### Manual Analysis (New Feature)
+### OCR Analysis (Advanced Feature)
 When a product is not found in the database:
 
 1. **Upload Images Method:**
@@ -108,12 +151,14 @@ When a product is not found in the database:
 - Ask questions about nutrition, ingredients, health implications
 - Get personalized advice based on your dietary preferences
 
-## Technical Details
+## 🔬 Technical Details
 
-### OCR Technology
-- **EasyOCR**: Primary OCR engine for better accuracy
-- **Pytesseract**: Fallback OCR engine
-- **Text Processing**: Extracts nutrition data and allergens from images
+### OCR Processing Pipeline
+1. **Image Preprocessing**: Optimize image quality for text extraction
+2. **EasyOCR Processing**: Primary text recognition with high accuracy
+3. **Tesseract Fallback**: Secondary processing for challenging images
+4. **Text Post-processing**: Clean and structure extracted data
+5. **Nutrition Analysis**: Parse nutritional information and allergens
 
 ### Sugar Analysis Logic
 For diabetic patients:
@@ -131,7 +176,7 @@ For non-diabetic patients:
 - **Google Gemini AI**: Nutrition analysis and chatbot
 - **Rate Limiting**: Built-in protection against API limits
 
-## Troubleshooting
+## 🔧 Troubleshooting
 
 ### OCR Issues
 - Ensure Tesseract is properly installed and in PATH
@@ -147,10 +192,6 @@ For non-diabetic patients:
 - Monitor rate limits (10 requests per minute)
 - Fallback responses are provided when API is unavailable
 
-## Contributing
+## 🤝 Contributing
 
 Feel free to submit issues and enhancement requests!
-
-## License
-
-This project is licensed under the MIT License. 
