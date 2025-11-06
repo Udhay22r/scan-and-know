@@ -171,17 +171,6 @@ The model will be saved to `models/consumption_model.pth` and automatically used
 4. **Text Post-processing**: Clean and structure extracted data
 5. **Nutrition Analysis**: Parse nutritional information and allergens
 
-### Sugar Analysis Logic
-For diabetic patients:
-- **First 3 ingredients contain sugar**: ❌ AVOID
-- **First 5 ingredients contain sugar**: ⚠️ CONSUME IN MODERATION
-- **No sugar in first 5**: ✅ SAFE TO CONSUME
-
-For non-diabetic patients:
-- **First 3 ingredients contain sugar**: ⚠️ CONSIDER IN MODERATION
-- **First 5 ingredients contain sugar**: ✅ SAFE TO CONSUME
-- **No sugar in first 5**: ✅ SAFE TO CONSUME
-
 ### API Integration
 - **OpenFoodFacts**: Product database
 - **Google Gemini AI**: Nutrition analysis and chatbot
