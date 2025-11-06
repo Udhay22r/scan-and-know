@@ -12,6 +12,7 @@ import pytesseract
 import easyocr
 from PIL import Image
 import re
+from nn_model import ConsumptionPredictor
 
 # Load environment variables
 load_dotenv()
@@ -128,6 +129,21 @@ current_product_data = None
 
 # Store extracted text data for manual analysis
 extracted_text_data = None
+
+# Initialize Neural Network Model
+nn_predictor = None
+try:
+    nn_predictor = ConsumptionPredictor()
+    if os.path.exists('models/consumption_model.pth'):
+        nn_predictor.load_model()
+        print("✅ Neural Network model loaded successfully")
+    else:
+        print("⚠️ Neural Network model not found. Run train_model.py to train the model.")
+        print("   Falling back to rule-based analysis.")
+except Exception as e:
+    print(f"⚠️ Error initializing Neural Network: {e}")
+    print("   Falling back to rule-based analysis.")
+    nn_predictor = None
 
 # Rate limiting variables
 last_request_time = 0
@@ -590,10 +606,23 @@ def get_fallback_response(user_message, product_data=None):
     return FALLBACK_RESPONSES["general"]
 
 def analyze_product(product_data, preferences):
-    """Analyze product against user preferences"""
+    """Analyze product against user preferences using Neural Network and rule-based logic"""
     ingredients = product_data.get('ingredients', '').lower()
     allergens = product_data.get('allergens', [])
     nutrients = product_data.get('nutrients', {})
+    
+    # Try Neural Network prediction first
+    nn_recommendation = None
+    nn_probabilities = None
+    nn_reasons = []
+    
+    if nn_predictor and nn_predictor.model is not None:
+        try:
+            nn_recommendation, nn_probabilities = nn_predictor.predict(product_data, preferences)
+            nn_reasons = nn_predictor.get_prediction_reasons(product_data, preferences, nn_recommendation, nn_probabilities)
+        except Exception as e:
+            print(f"⚠️ Neural Network prediction failed: {e}")
+            nn_recommendation = None
     
     # Check for allergens
     user_allergens = preferences.get('allergens', [])
@@ -684,10 +713,17 @@ def analyze_product(product_data, preferences):
         if consumption_recommendation == "can_consume":
             consumption_recommendation = "consume_half"
     
+    # Use Neural Network recommendation if available, otherwise use rule-based
+    if nn_recommendation:
+        consumption_recommendation = nn_recommendation
+        # Merge NN reasons with rule-based conflicts
+        if nn_reasons:
+            dietary_conflicts.extend(nn_reasons)
+    
     # Note: We don't add warnings about missing ingredients to avoid cluttering the chatbot response
     # The chatbot will focus on available information only
     
-    return {
+    result = {
         "consumption_recommendation": consumption_recommendation,
         "dietary_conflicts": dietary_conflicts,
         "allergen_conflicts": allergen_conflicts,
@@ -699,6 +735,22 @@ def analyze_product(product_data, preferences):
             "carbohydrates": nutrients.get('carbohydrates', 0)
         }
     }
+    
+    # Add Neural Network information if available
+    if nn_recommendation and nn_probabilities:
+        result["nn_prediction"] = {
+            "recommendation": nn_recommendation,
+            "probabilities": nn_probabilities,
+            "confidence": nn_probabilities[nn_recommendation],
+            "method": "neural_network"
+        }
+    else:
+        result["nn_prediction"] = {
+            "method": "rule_based",
+            "note": "Neural Network model not available, using rule-based analysis"
+        }
+    
+    return result
 
 def extract_text_from_image(image_file):
     """Extract text from uploaded image using OCR"""

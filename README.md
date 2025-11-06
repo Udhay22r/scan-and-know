@@ -18,7 +18,6 @@ A comprehensive web application that uses cutting-edge OCR technology and AI to 
 - **EasyOCR**: Primary OCR engine for superior text extraction accuracy
 - **Tesseract OCR**: Robust fallback OCR engine for comprehensive coverage
 - **Smart Text Processing**: Extracts nutrition data and allergens from product images
-- **Multi-language Support**: Handles various text formats and languages
 
 ### 📱 **Multiple Scanning Methods**
 - **Camera Barcode Scan**: Real-time barcode detection using device camera
@@ -150,6 +149,18 @@ When a product is not found in the database:
 - After scanning or analyzing a product, use the AI assistant on the right
 - Ask questions about nutrition, ingredients, health implications
 - Get personalized advice based on your dietary preferences
+
+## 🧠 Neural Network Prediction
+
+The application includes a feed-forward neural network built with **PyTorch** that predicts consumption recommendations (can_consume, consume_half, or avoid) based on nutritional data and user preferences.
+
+**To train the model:**
+```bash
+pip install torch scikit-learn pandas
+python train_model.py
+```
+
+The model will be saved to `models/consumption_model.pth` and automatically used by the application. If the model is unavailable, the system falls back to rule-based analysis.
 
 ## 🔬 Technical Details
 
